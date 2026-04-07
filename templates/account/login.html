@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% load socialaccount %}
+
+{% block content %}
+<div class="glass" style="max-width: 500px; margin: 4rem auto; padding: 3rem 2rem; text-align: center;">
+    <h2 style="font-size: 2.5rem; margin-bottom: 1rem; margin-top: 0;">Welcome Back</h2>
+    <p style="color: #94a3b8; margin-bottom: 2.5rem; font-size: 1.1rem;">Please sign in to continue to the Daily Raffle.</p>
+    <form action="{% provider_login_url 'google' %}" method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn" style="width: 100%; display: inline-block; box-sizing: border-box; font-size: 1.1rem; padding: 1rem; border: none; cursor: pointer;">
+            Login with Google
+        </button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="glass" style="max-width: 500px; margin: 4rem auto; padding: 3rem 2rem; text-align: center;">
+    <h2 style="font-size: 2.5rem; margin-bottom: 1rem; margin-top: 0;">Sign Out</h2>
+    <p style="color: #94a3b8; margin-bottom: 2.5rem; font-size: 1.1rem;">Are you sure you want to sign out?</p>
+    <form method="post" action="{% url 'account_logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn" style="width: 100%; font-size: 1.1rem; padding: 1rem;">Sign Out</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 2rem auto; padding: 0 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="margin-bottom: 0.5rem;">Welcome, {{ user.first_name|default:user.username|default:user.email }}</h1>
+        <p style="color: #94a3b8; margin-top: 0;">Wallet Balance: <strong style="color: white; font-size: 1.2rem;">₦{{ wallet_balance }}</strong></p>
+    </div>
+    <button id="open-history-modal" class="btn" style="padding: 0.75rem 1.5rem; font-size: 1rem;">Draw History</button>
+</div>
+
+<div class="dashboard-container">
+    <div class="glass stat-card">
+        <h3>Current Daily Pool</h3>
+        <div class="value">₦{{ active_raffle.total_pool }}</div>
+        <p style="color: #94a3b8; font-size: 0.9rem;">Winner takes 80%: <strong>₦{{ active_raffle.total_pool|add:0|floatformat:2 }} * 0.8</strong> (Roughly)</p>
+        
+        <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 2rem 0;">
+        
+        <h3>Winner Announcement</h3>
+        {% if past_raffle %}
+            <p style="font-size: 1.2rem; color: #10b981; font-weight: 800; margin-bottom: 0.2rem;">{{ past_raffle.winner.username|default:"Anonymous" }} won ₦{{ past_raffle.amount_won|default:"0.00" }}! 🎉</p>
+            <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 0;">From the {{ past_raffle.end_date|date:"F j" }} draw</p>
+            <p style="font-size: 0.9rem; color: #fff; margin-top: 1rem;">Next draw: {{ active_raffle.end_date|date:"F j, Y, h:i A" }}</p>
+        {% else %}
+            <p style="font-size: 1.2rem; color: #fff;">Next draw: {{ active_raffle.end_date|date:"F j, Y, h:i A" }}</p>
+            <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 0.5rem;">No previous winners to display yet.</p>
+        {% endif %}
+        
+        <div style="margin-top: 1.5rem; text-align: center; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; border: 1px solid var(--glass-border);">
+            <p style="margin: 0; font-size: 0.9rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">Drawing In</p>
+            <div id="countdown" style="font-size: 2rem; color: #f59e0b; font-weight: 800; font-family: monospace; text-shadow: 0 0 10px rgba(245,158,11,0.3);">--:--:--</div>
+        </div>
+    </div>
+
+    <div class="glass stat-card" style="display: flex; flex-direction: column; justify-content: center; text-align: left;">
+        <h3 style="margin-top: 0; text-align: center;">Deposit Funds</h3>
+        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; text-align: center;">Add money to your wallet.</p>
+        <form method="post" action="{% url 'deposit' %}" style="display: flex; gap: 1rem; flex-direction: column;">
+            {% csrf_token %}
+            <input type="number" name="amount" min="100" step="100" placeholder="Amount (min 100 NGN)" required style="padding: 1rem; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); color: white; width: 100%; box-sizing: border-box; font-size: 1.1rem; font-family: inherit;">
+            <button type="submit" class="btn" style="width: 100%; font-size: 1.1rem; padding: 1rem; background: linear-gradient(135deg, #10b981, #059669);">Deposit via Paystack</button>
+        </form>
+        
+        <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 2rem 0; width: 100%;">
+        
+        <h3 style="margin-top: 0; text-align: center;">Withdraw Funds</h3>
+        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; text-align: center;">Transfer balance to your bank account.</p>
+        <button id="open-withdraw-modal" class="btn" style="width: 100%; font-size: 1.1rem; padding: 1rem; background: linear-gradient(135deg, #f59e0b, #d97706);">Withdraw Funds</button>
+        
+        <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 2rem 0; width: 100%;">
+        
+        <div style="text-align: center;">
+            {% if user_donated %}
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; padding: 2rem; border-radius: 12px;">
+                    <h3 style="color: #10b981; margin-top: 0;">You're in the draw! 🎉</h3>
+                    <p style="margin-bottom: 0;">Good luck for Today's raffle.</p>
+                </div>
+            {% else %}
+                <h3>Join this Today's draw</h3>
+                <p style="margin-bottom: 1.5rem; color: #94a3b8;">Cost: 100 NGN from Wallet</p>
+                <form method="post" action="{% url 'donate' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn" style="width: 100%; font-size: 1.2rem; padding: 1rem;">Play with 100 NGN</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+
+<div id="withdraw-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+    <div class="glass stat-card" style="width: 90%; max-width: 400px; position: relative;">
+        <button id="close-withdraw-modal" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        <h3 style="margin-top: 0; text-align: center;">Withdraw Funds</h3>
+        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; text-align: center;">Transfer balance to your bank account.</p>
+        <form method="post" action="{% url 'withdraw' %}" style="display: flex; gap: 1rem; flex-direction: column;">
+            {% csrf_token %}
+            <input type="number" name="amount" min="100" step="10" placeholder="Amount (min 100 NGN)" required style="padding: 1rem; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); color: white; width: 100%; box-sizing: border-box; font-size: 1.1rem; font-family: inherit;">
+            <input type="text" name="bank_name" placeholder="Bank Name (e.g. GTBank)" required style="padding: 1rem; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); color: white; width: 100%; box-sizing: border-box; font-size: 1.1rem; font-family: inherit;">
+            <input type="text" name="account_number" placeholder="Account Number" required style="padding: 1rem; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); color: white; width: 100%; box-sizing: border-box; font-size: 1.1rem; font-family: inherit;">
+            <button type="submit" class="btn" style="width: 100%; font-size: 1.1rem; padding: 1rem; background: linear-gradient(135deg, #f59e0b, #d97706);">Submit Withdrawal</button>
+        </form>
+    </div>
+</div>
+
+<div id="history-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+    <div class="glass stat-card" style="width: 90%; max-width: 600px; position: relative; max-height: 80vh; overflow-y: auto;">
+        <button id="close-history-modal" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        <h3 style="margin-top: 0; text-align: center; margin-bottom: 1.5rem;">Your Draw History</h3>
+        
+        {% if user_donations %}
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                {% for donation in user_donations %}
+                    <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 1rem; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                            <strong style="color: white;">Draw: {{ donation.raffle.end_date|date:"F j, Y" }}</strong>
+                            <span style="color: #94a3b8;">{{ donation.created_at|date:"M j, g:i a" }}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                            <span style="color: #94a3b8;">Entry: ₦{{ donation.amount }}</span>
+                            {% if donation.raffle.is_active %}
+                                <span style="color: #f59e0b; font-weight: bold;">Pending</span>
+                            {% elif donation.raffle.winner == user %}
+                                <span style="color: #10b981; font-weight: bold;">Winner (₦{{ donation.raffle.amount_won }})</span>
+                            {% else %}
+                                <span style="color: #ef4444;">Did not win</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="text-align: center; color: #94a3b8;">You haven't participated in any draws yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Withdraw Modal
+    document.getElementById('open-withdraw-modal').addEventListener('click', function() {
+        document.getElementById('withdraw-modal').style.display = 'flex';
+    });
+    
+    document.getElementById('close-withdraw-modal').addEventListener('click', function() {
+        document.getElementById('withdraw-modal').style.display = 'none';
+    });
+
+    // History Modal
+    if (document.getElementById('open-history-modal')) {
+        document.getElementById('open-history-modal').addEventListener('click', function() {
+            document.getElementById('history-modal').style.display = 'flex';
+        });
+    }
+    
+    if (document.getElementById('close-history-modal')) {
+        document.getElementById('close-history-modal').addEventListener('click', function() {
+            document.getElementById('history-modal').style.display = 'none';
+        });
+    }
+    
+    window.addEventListener('click', function(event) {
+        let withdrawModal = document.getElementById('withdraw-modal');
+        let historyModal = document.getElementById('history-modal');
+        if (event.target == withdrawModal) {
+            withdrawModal.style.display = 'none';
+        }
+        if (historyModal && event.target == historyModal) {
+            historyModal.style.display = 'none';
+        }
+    });
+
+    const drawDateStr = "{{ active_raffle.end_date|date:'c' }}";
+    const drawDate = new Date(drawDateStr).getTime();
+    
+    const x = setInterval(function() {
+        const now = new Date().getTime();
+        const distance = drawDate - now;
+        
+        if (distance < 0) {
+            clearInterval(x);
+            document.getElementById("countdown").innerHTML = "DRAWING NOW!";
+            return;
+        }
+        
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        const formatZero = (num) => (num < 10 ? "0" + num : num);
+        
+        document.getElementById("countdown").innerHTML = formatZero(hours) + "h " + formatZero(minutes) + "m " + formatZero(seconds) + "s";
+    }, 1000);
+</script>
+{% endblock %}

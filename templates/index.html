@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="hero">
+    <h1>100 NGN. <br><span style="color: var(--secondary)">Massive Wins.</span></h1>
+    <p>Donate 100 Naira today, and every evening at 8:00 PM WAT, one lucky winner takes home the entire daily pool. It's that simple.</p>
+    {% if user.is_authenticated %}
+        <a href="{% url 'dashboard' %}" class="btn" style="font-size: 1.2rem; padding: 1rem 3rem;">Go to Dashboard</a>
+    {% else %}
+        <a href="{% url 'account_login' %}" class="btn" style="font-size: 1.2rem; padding: 1rem 3rem;">Login to Participate</a>
+    {% endif %}
+</div>
+
+{% if past_raffles %}
+<div class="glass winners-list">
+    <h2 style="text-align: center; margin-bottom: 2rem;">Recent Winners</h2>
+    {% for raffle in past_raffles %}
+        <div class="winner-item">
+            <div>
+                <strong>{{ raffle.end_date|date:"M d, Y" }}</strong>
+                <p style="margin: 0.5rem 0 0; color: #94a3b8;">Won by {{ raffle.winner.username|default:"Anonymous" }}</p>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">₦{{ raffle.amount_won|default:"0.00" }}</span>
+                <p style="margin: 0; font-size: 0.9rem; color: #94a3b8;">Total Pool: ₦{{ raffle.total_pool }}</p>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
