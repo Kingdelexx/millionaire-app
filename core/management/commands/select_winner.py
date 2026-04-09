@@ -40,9 +40,31 @@ class Command(BaseCommand):
 
         # Create tomorrow's raffle
         now = timezone.now()
-        next_draw = now.replace(hour=19, minute=0, second=0, microsecond=0)
+        next_draw = now.replace(hour=20, minute=0, second=0, microsecond=0)
         if now >= next_draw:
             next_draw += timezone.timedelta(days=1)
         
         new_raffle = Raffle.objects.create(end_date=next_draw)
         self.stdout.write(self.style.SUCCESS(f'Created new raffle ending {next_draw}'))
+
+        # Auto-enter users
+        from core.models import UserProfile, Donation
+        
+        auto_enter_profiles = UserProfile.objects.filter(auto_enter=True, wallet_balance__gte=Decimal('100.00'))
+        entered_count = 0
+        for profile in auto_enter_profiles:
+            profile.wallet_balance -= Decimal('100.00')
+            profile.save()
+            
+            Donation.objects.create(
+                user=profile.user,
+                raffle=new_raffle,
+                amount=Decimal('100.00'),
+                paystack_reference='WALLET_PAYMENT_AUTO'
+            )
+            new_raffle.total_pool += Decimal('100.00')
+            entered_count += 1
+            
+        new_raffle.save()
+        if entered_count > 0:
+            self.stdout.write(self.style.SUCCESS(f'Auto-entered {entered_count} users into the new raffle.'))

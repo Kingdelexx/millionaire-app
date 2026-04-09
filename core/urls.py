@@ -8,4 +8,5 @@ urlpatterns = [
     path('deposit/', views.deposit_view, name='deposit'),
     path('withdraw/', views.withdraw_view, name='withdraw'),
     path('paystack/callback/', views.paystack_callback, name='paystack_callback'),
+    path('toggle-auto-enter/', views.toggle_auto_enter, name='toggle_auto_enter'),
 ]

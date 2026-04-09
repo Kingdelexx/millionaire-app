@@ -160,3 +160,15 @@ def withdraw_view(request):
             messages.error(request, "Insufficient wallet balance.")
             
     return redirect('dashboard')
+
+@login_required
+def toggle_auto_enter(request):
+    if request.method == 'POST':
+        profile = request.user.profile
+        profile.auto_enter = request.POST.get('auto_enter') == 'on'
+        profile.save()
+        if profile.auto_enter:
+            messages.success(request, "Daily auto-enter has been enabled.")
+        else:
+            messages.success(request, "Daily auto-enter has been disabled.")
+    return redirect('dashboard')
